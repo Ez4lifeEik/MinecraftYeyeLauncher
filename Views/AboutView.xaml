@@ -1,0 +1,98 @@
+<UserControl x:Class="ArclightLauncher.Views.AboutView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:hc="https://handyorg.github.io/handycontrol">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="40,32,40,32" MaxWidth="600" HorizontalAlignment="Left">
+
+            <!-- 应用名 + 版本 -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                <TextBlock Text="{Binding AppName}"
+                           FontSize="28" FontWeight="Bold"/>
+                <Border Background="{DynamicResource PrimaryBrush}"
+                        CornerRadius="4" Padding="8,3"
+                        VerticalAlignment="Center" Margin="12,0,0,0">
+                    <TextBlock Text="{Binding AppVersion}"
+                               Foreground="White" FontSize="12"/>
+                </Border>
+            </StackPanel>
+
+            <TextBlock Text="{Binding AppDesc}"
+                       FontSize="14"
+                       Foreground="{DynamicResource SecondaryTextBrush}"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,28"/>
+
+            <!-- 致谢 -->
+            <TextBlock Text="致谢" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10"/>
+            <StackPanel Margin="0,0,0,28">
+                <TextBlock Margin="0,0,0,6">
+                    <Hyperlink NavigateUri="https://github.com/Corona-Studio/ProjBobcat"
+                               RequestNavigate="Hyperlink_RequestNavigate">
+                        ProjBobcat
+                    </Hyperlink>
+                    <Run Text=" — Minecraft 核心库"/>
+                </TextBlock>
+                <TextBlock Margin="0,0,0,6">
+                    <Hyperlink NavigateUri="https://github.com/HandyOrg/HandyControl"
+                               RequestNavigate="Hyperlink_RequestNavigate">
+                        HandyControl
+                    </Hyperlink>
+                    <Run Text=" — WPF UI 控件库"/>
+                </TextBlock>
+                <TextBlock Margin="0,0,0,6">
+                    <Hyperlink NavigateUri="https://github.com/CommunityToolkit/dotnet"
+                               RequestNavigate="Hyperlink_RequestNavigate">
+                        CommunityToolkit.Mvvm
+                    </Hyperlink>
+                    <Run Text=" — MVVM 框架"/>
+                </TextBlock>
+                <TextBlock Margin="0,0,0,6">
+                    <Hyperlink NavigateUri="https://serilog.net"
+                               RequestNavigate="Hyperlink_RequestNavigate">
+                        Serilog
+                    </Hyperlink>
+                    <Run Text=" — 日志库"/>
+                </TextBlock>
+            </StackPanel>
+
+            <!-- 系统信息（折叠） -->
+            <Expander Header="系统信息" Margin="0,0,0,0">
+                <StackPanel Margin="0,10,0,0">
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="操作系统"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13"/>
+                        <TextBlock Grid.Column="1" Text="{Binding OsVersion}"
+                                   FontSize="13" TextWrapping="Wrap"/>
+                    </Grid>
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text=".NET 版本"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13"/>
+                        <TextBlock Grid.Column="1" Text="{Binding DotNetVersion}"
+                                   FontSize="13" TextWrapping="Wrap"/>
+                    </Grid>
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Java"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13"/>
+                        <TextBlock Grid.Column="1" Text="{Binding JavaPath}"
+                                   FontSize="13" TextWrapping="Wrap"/>
+                    </Grid>
+                </StackPanel>
+            </Expander>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

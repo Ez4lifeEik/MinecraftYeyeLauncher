@@ -1,0 +1,77 @@
+<Window x:Class="ArclightLauncher.Views.Dialogs.FirstRunDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:hc="https://handyorg.github.io/handycontrol"
+        Title="欢迎使用 ArclightLauncher"
+        Width="480" Height="260"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="True"
+        Background="{DynamicResource RegionBrush}">
+
+    <Grid Margin="28,24,28,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="4"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="4"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题 -->
+        <TextBlock Grid.Row="0"
+                   Text="选择游戏数据目录"
+                   FontSize="18" FontWeight="SemiBold"
+                   Foreground="{DynamicResource PrimaryTextBrush}"/>
+
+        <!-- 路径输入行 -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBox Grid.Column="0"
+                     Text="{Binding GamePath, UpdateSourceTrigger=PropertyChanged}"
+                     hc:InfoElement.Placeholder="例如 D:\ArclightLauncher\.minecraft"
+                     VerticalContentAlignment="Center"/>
+
+            <Button Grid.Column="2"
+                    Content="浏览…"
+                    Command="{Binding BrowseFolderCommand}"
+                    Padding="14,7"/>
+        </Grid>
+
+        <!-- 磁盘信息 -->
+        <TextBlock Grid.Row="4"
+                   Text="{Binding DriveInfo}"
+                   FontSize="12"
+                   Foreground="{DynamicResource SecondaryTextBrush}"/>
+
+        <!-- 系统盘警告 -->
+        <TextBlock Grid.Row="6"
+                   Text="⚠ 检测到该路径在系统盘，建议改到其他磁盘以避免影响系统性能。"
+                   FontSize="12"
+                   Foreground="{DynamicResource DangerBrush}"
+                   TextWrapping="Wrap"
+                   Visibility="{Binding IsSystemDriveWarningVisible,
+                                        Converter={StaticResource Boolean2VisibilityConverter}}"/>
+
+        <!-- 按钮行 -->
+        <StackPanel Grid.Row="8" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="使用默认路径"
+                    Command="{Binding UseDefaultCommand}"
+                    Padding="16,7" Margin="0,0,8,0"
+                    Foreground="{DynamicResource SecondaryTextBrush}"/>
+            <Button Content="确认并继续"
+                    Command="{Binding ConfirmCommand}"
+                    Style="{StaticResource ButtonPrimary}"
+                    Padding="20,7"/>
+        </StackPanel>
+    </Grid>
+</Window>

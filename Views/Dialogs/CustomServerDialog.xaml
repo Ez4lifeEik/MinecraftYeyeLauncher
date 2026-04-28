@@ -1,0 +1,45 @@
+<Window x:Class="ArclightLauncher.Views.Dialogs.CustomServerDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:hc="https://handyorg.github.io/handycontrol"
+        Title="连接其他服务器"
+        Width="340" Height="148"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="{DynamicResource RegionBrush}">
+
+    <Grid Margin="20,16,20,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="12"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- IP + 端口 -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="80"/>
+            </Grid.ColumnDefinitions>
+            <TextBox Grid.Column="0"
+                     Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}"
+                     hc:InfoElement.Placeholder="服务器地址 / IP"/>
+            <TextBox Grid.Column="2"
+                     Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}"
+                     hc:InfoElement.Placeholder="端口"/>
+        </Grid>
+
+        <!-- 确定 / 取消 -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="连接"
+                    Command="{Binding ConfirmCommand}"
+                    Style="{StaticResource ButtonPrimary}"
+                    Padding="24,7" Margin="0,0,8,0"/>
+            <Button Content="取消"
+                    Command="{Binding CancelCommand}"
+                    Padding="24,7"/>
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,34 @@
+<Application x:Class="ArclightLauncher.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:hc="https://handyorg.github.io/handycontrol"
+             xmlns:vm="clr-namespace:ArclightLauncher.ViewModels"
+             xmlns:views="clr-namespace:ArclightLauncher.Views">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- HandyControl 主题（皮肤可在运行时切换 Source） -->
+                <ResourceDictionary Source="pack://application:,,,/HandyControl;component/Themes/SkinDefault.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/HandyControl;component/Themes/Theme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!--
+                DataTemplate：TabItem.Content 绑定到子 ViewModel 后，
+                WPF 自动通过这里的 DataTemplate 选择对应的 View 渲染
+            -->
+            <DataTemplate DataType="{x:Type vm:HomeViewModel}">
+                <views:HomeView/>
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+                <views:SettingsView/>
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vm:AboutViewModel}">
+                <views:AboutView/>
+            </DataTemplate>
+
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

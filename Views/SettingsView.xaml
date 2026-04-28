@@ -1,0 +1,183 @@
+<UserControl x:Class="ArclightLauncher.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:hc="https://handyorg.github.io/handycontrol">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <!-- 每个分组标题样式 -->
+        <Style x:Key="GroupHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize"   Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin"     Value="0,0,0,12"/>
+        </Style>
+        <!-- 设置行标签 -->
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
+            <Setter Property="Margin"   Value="0,0,0,4"/>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="24,20,24,24">
+
+            <!-- ══ 启动设置 ═══════════════════════════════════════════════ -->
+            <TextBlock Text="启动设置" Style="{StaticResource GroupHeaderStyle}"/>
+
+            <!-- 游戏目录 -->
+            <TextBlock Text="游戏目录" Style="{StaticResource LabelStyle}"/>
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0"
+                         Text="{Binding GameDir, UpdateSourceTrigger=PropertyChanged}"
+                         hc:InfoElement.Placeholder="默认：%APPDATA%\ArclightLauncher\.minecraft"
+                         Margin="0,0,6,0"/>
+                <Button Grid.Column="1" Content="浏览"
+                        Command="{Binding BrowseGameDirCommand}"
+                        Margin="0,0,6,0" Padding="12,6"/>
+                <Button Grid.Column="2" Content="打开"
+                        Command="{Binding OpenGameDirCommand}"
+                        Padding="12,6"/>
+            </Grid>
+
+            <!-- Java 路径 -->
+            <TextBlock Text="Java 路径" Style="{StaticResource LabelStyle}"/>
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0"
+                         Text="{Binding JavaExe, UpdateSourceTrigger=PropertyChanged}"
+                         hc:InfoElement.Placeholder="留空自动检测"
+                         Margin="0,0,6,0"/>
+                <Button Grid.Column="1" Content="自动检测"
+                        Command="{Binding DetectJavaCommand}"
+                        Margin="0,0,6,0" Padding="12,6"/>
+                <Button Grid.Column="2" Content="浏览"
+                        Command="{Binding BrowseJavaCommand}"
+                        Padding="12,6"/>
+            </Grid>
+
+            <!-- 最大内存 -->
+            <TextBlock Style="{StaticResource LabelStyle}">
+                <Run Text="最大内存："/>
+                <Run Text="{Binding MaxMemory, StringFormat={}{0} MB}"/>
+            </TextBlock>
+            <Slider Minimum="1024"
+                    Maximum="{Binding MaxMemorySliderMax}"
+                    Value="{Binding MaxMemory}"
+                    TickFrequency="512"
+                    IsSnapToTickEnabled="True"
+                    Margin="0,0,0,16"/>
+
+            <!-- JVM 高级参数（折叠） -->
+            <Button Content="{Binding IsAdvancedJvmVisible,
+                        Converter={x:Null},
+                        FallbackValue='▶ 显示高级 JVM 选项'}"
+                    Command="{Binding ToggleAdvancedJvmCommand}"
+                    HorizontalAlignment="Left"
+                    Padding="0,4"
+                    Style="{StaticResource ButtonCustom}"
+                    Margin="0,0,0,6">
+                <Button.ContentTemplate>
+                    <DataTemplate>
+                        <TextBlock>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="▶ 显示高级 JVM 选项"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding DataContext.IsAdvancedJvmVisible,
+                                            RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                     Value="True">
+                                            <Setter Property="Text" Value="▼ 隐藏高级 JVM 选项"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </DataTemplate>
+                </Button.ContentTemplate>
+            </Button>
+            <TextBox Text="{Binding JvmArgs, UpdateSourceTrigger=PropertyChanged}"
+                     hc:InfoElement.Placeholder="例：-XX:+UseZGC -Dfml.ignoreInvalidMinecraftCertificates=true"
+                     Visibility="{Binding IsAdvancedJvmVisible, Converter={StaticResource BoolToVis}}"
+                     Margin="0,0,0,16"/>
+
+            <!-- 启动后行为 -->
+            <TextBlock Text="启动后行为" Style="{StaticResource LabelStyle}"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <RadioButton Content="保持启动器"   GroupName="PostLaunch"
+                             IsChecked="{Binding PostLaunchKeep}"    Margin="0,0,16,0"/>
+                <RadioButton Content="最小化"       GroupName="PostLaunch"
+                             IsChecked="{Binding PostLaunchMinimize}" Margin="0,0,16,0"/>
+                <RadioButton Content="关闭启动器"   GroupName="PostLaunch"
+                             IsChecked="{Binding PostLaunchClose}"/>
+            </StackPanel>
+
+            <!-- Mod 管理 -->
+            <Button Content="Mod 管理……"
+                    Command="{Binding OpenModManagerCommand}"
+                    HorizontalAlignment="Left"
+                    Padding="16,8"
+                    Margin="0,0,0,28"/>
+
+            <Separator Margin="0,0,0,20"/>
+
+            <!-- ══ 个性化 ══════════════════════════════════════════════════ -->
+            <TextBlock Text="个性化" Style="{StaticResource GroupHeaderStyle}"/>
+
+            <TextBlock Text="启动器主题" Style="{StaticResource LabelStyle}"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                <RadioButton Content="浅色"     GroupName="Theme"
+                             IsChecked="{Binding ThemeLight}"  Margin="0,0,16,0"/>
+                <RadioButton Content="暗色"     GroupName="Theme"
+                             IsChecked="{Binding ThemeDark}"   Margin="0,0,16,0"/>
+                <RadioButton Content="跟随系统" GroupName="Theme"
+                             IsChecked="{Binding ThemeSystem}"/>
+            </StackPanel>
+
+            <TextBlock Text="离线皮肤：v0.4 支持（需 authlib-injector）"
+                       FontSize="12"
+                       Foreground="{DynamicResource ThirdlyTextBrush}"
+                       Margin="0,0,0,28"/>
+
+            <Separator Margin="0,0,0,20"/>
+
+            <!-- ══ 其他 ════════════════════════════════════════════════════ -->
+            <TextBlock Text="其他" Style="{StaticResource GroupHeaderStyle}"/>
+
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                <Button Content="强制重新校验所有文件"
+                        Command="{Binding ForceRevalidateCommand}"
+                        Padding="16,8" Margin="0,0,10,0"/>
+                <Button Content="打开游戏目录"
+                        Command="{Binding OpenGameDirCommand}"
+                        Padding="16,8" Margin="0,0,10,0"/>
+                <Button Content="打开日志目录"
+                        Command="{Binding OpenLogDirCommand}"
+                        Padding="16,8"/>
+            </StackPanel>
+
+            <!-- 状态反馈 -->
+            <TextBlock Text="{Binding StatusMessage}"
+                       FontSize="12"
+                       Foreground="{DynamicResource PrimaryBrush}"
+                       Margin="0,6,0,0"
+                       Visibility="{Binding StatusMessage,
+                           Converter={StaticResource String2VisibilityConverter}}"/>
+
+            <TextBlock Text="检查启动器更新（暂未实现）"
+                       FontSize="12"
+                       Foreground="{DynamicResource ThirdlyTextBrush}"
+                       Margin="0,16,0,0"/>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
