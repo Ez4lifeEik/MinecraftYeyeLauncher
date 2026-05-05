@@ -45,11 +45,11 @@ public class ServerManifest
 /// </summary>
 public class LoaderInfo
 {
-    /// <summary>类型：目前只实现 "forge"</summary>
+    /// <summary>类型：支持 "forge" / "fabric"</summary>
     [JsonPropertyName("type")]
     public string Type { get; set; } = string.Empty;
 
-    /// <summary>版本号（如 "47.2.0"）</summary>
+    /// <summary>版本号（如 "47.2.0" / "0.16.14"；Fabric 可填 "latest" 或留空）</summary>
     [JsonPropertyName("version")]
     public string Version { get; set; } = string.Empty;
 }

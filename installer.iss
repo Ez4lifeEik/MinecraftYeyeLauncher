@@ -4,7 +4,7 @@
 ; ============================================================
 
 #define AppName      "ArclightLauncher"
-#define AppVersion   "0.3.1"
+#define AppVersion   "0.3.5"
 #define AppPublisher "Arclight Team"
 #define AppExeName   "ArclightLauncher.exe"
 #define PublishDir   "publish"
@@ -52,9 +52,8 @@ Name: "chs"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
 Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "附加任务:"; Flags: unchecked
 
 [Files]
-; 单文件可执行 + 配置文件
+; 单文件可执行
 Source: "{#PublishDir}\{#AppExeName}";    DestDir: "{app}"; Flags: ignoreversion
-Source: "{#PublishDir}\appsettings.json"; DestDir: "{app}"; Flags: ignoreversion
 
 ; 如果 publish 目录中存在 .pdb，也一并打包（可选）
 ; Source: "{#PublishDir}\{#AppName}.pdb"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist

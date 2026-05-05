@@ -19,11 +19,11 @@ function Write-Step([string]$msg) {
     Write-Host "== $msg" -ForegroundColor Cyan
 }
 
-Write-Step "1/4  dotnet clean"
+Write-Step "1/3  dotnet clean"
 dotnet clean "$ProjectRoot" -c Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "dotnet clean failed" }
 
-Write-Step "2/4  dotnet publish"
+Write-Step "2/3  dotnet publish"
 if (Test-Path $PublishDir) { Remove-Item $PublishDir -Recurse -Force }
 New-Item $PublishDir -ItemType Directory | Out-Null
 
@@ -40,14 +40,7 @@ dotnet publish "$ProjectRoot" `
 
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
 
-Write-Step "3/4  copy appsettings.json"
-$AppSettings = Join-Path $ProjectRoot "appsettings.json"
-if (Test-Path $AppSettings) {
-    Copy-Item $AppSettings -Destination $PublishDir -Force
-    Write-Host "  Copied appsettings.json"
-}
-
-Write-Step "4/4  Inno Setup"
+Write-Step "3/3  Inno Setup"
 if ($SkipInstaller) {
     Write-Host "  Skipped (-SkipInstaller)" -ForegroundColor Yellow
 } else {

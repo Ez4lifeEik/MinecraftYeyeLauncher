@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.InteropServices;
 using ArclightLauncher.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -10,9 +11,9 @@ namespace ArclightLauncher.ViewModels;
 /// </summary>
 public partial class AboutViewModel : ObservableObject
 {
-    public string AppVersion    { get; } = "v0.2.0";
+    public string AppVersion    { get; } = "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.0.0");
     public string AppName       { get; } = "ArclightLauncher";
-    public string AppDesc       { get; } = "朝夕服专属 Minecraft 启动器，极简安装，一键上车。";
+    public string AppDesc       { get; } = "迷你世界专属启动器，极简安装，一键上车。";
 
     public string OsVersion     { get; } = RuntimeInformation.OSDescription;
     public string DotNetVersion { get; } = RuntimeInformation.FrameworkDescription;

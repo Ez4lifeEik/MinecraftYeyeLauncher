@@ -23,6 +23,19 @@ public static class HashHelper
     }
 
     /// <summary>
+    /// 计算文件的 SHA256，返回小写十六进制字符串
+    /// </summary>
+    public static async Task<string> ComputeSha256Async(string filePath, CancellationToken ct = default)
+    {
+        await using var stream = new FileStream(
+            filePath, FileMode.Open, FileAccess.Read,
+            FileShare.Read, bufferSize: 81920, useAsync: true);
+
+        var bytes = await SHA256.HashDataAsync(stream, ct);
+        return BytesToHex(bytes);
+    }
+
+    /// <summary>
     /// 计算字节数组的 SHA1，返回小写十六进制字符串
     /// </summary>
     public static string ComputeSha1(byte[] data)

@@ -32,7 +32,7 @@
                                RequestNavigate="Hyperlink_RequestNavigate">
                         ProjBobcat
                     </Hyperlink>
-                    <Run Text=" — Minecraft 核心库"/>
+                    <Run Text=" — 游戏启动核心库"/>
                 </TextBlock>
                 <TextBlock Margin="0,0,0,6">
                     <Hyperlink NavigateUri="https://github.com/HandyOrg/HandyControl"

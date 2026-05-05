@@ -1,419 +1,768 @@
 <UserControl x:Class="ArclightLauncher.Views.HomeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:hc="https://handyorg.github.io/handycontrol">
+             xmlns:hc="https://handyorg.github.io/handycontrol"
+             xmlns:models="clr-namespace:ArclightLauncher.Models"
+             FontFamily="Segoe UI">
 
     <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-
-        <!-- 分割按钮内部透明区域样式（主/副两侧共用） -->
-        <Style x:Key="SplitPartStyle" TargetType="Button">
-            <Setter Property="Background"       Value="Transparent"/>
-            <Setter Property="BorderThickness"  Value="0"/>
-            <Setter Property="Cursor"           Value="Hand"/>
-            <Setter Property="Foreground"       Value="White"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" Background="Transparent"
-                                CornerRadius="{TemplateBinding Tag}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                             VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#22FFFFFF"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#33000000"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Bd" Property="Opacity" Value="0.55"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Popup 内列表项样式 -->
-        <Style x:Key="PopupItemStyle" TargetType="Button">
-            <Setter Property="Background"              Value="Transparent"/>
-            <Setter Property="BorderThickness"         Value="0"/>
-            <Setter Property="HorizontalAlignment"     Value="Stretch"/>
-            <Setter Property="HorizontalContentAlignment" Value="Left"/>
-            <Setter Property="Padding"                 Value="14,9"/>
-            <Setter Property="FontSize"                Value="13"/>
-            <Setter Property="Cursor"                  Value="Hand"/>
-            <Setter Property="FocusVisualStyle"        Value="{x:Null}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" Background="Transparent" CornerRadius="4"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                             VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background"
-                                        Value="{DynamicResource SecondaryRegionBrush}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Styles/LauncherGlassTheme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+    <UserControl.Triggers>
+        <EventTrigger RoutedEvent="Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="LoginCard"
+                                     Storyboard.TargetProperty="Opacity"
+                                     From="0"
+                                     To="1"
+                                     Duration="0:0:0.48"/>
+                    <DoubleAnimation Storyboard.TargetName="LoginCardTranslate"
+                                     Storyboard.TargetProperty="Y"
+                                     From="22"
+                                     To="0"
+                                     Duration="0:0:0.48"/>
+                    <DoubleAnimation Storyboard.TargetName="FeatureCards"
+                                     Storyboard.TargetProperty="Opacity"
+                                     From="0"
+                                     To="1"
+                                     BeginTime="0:0:0.16"
+                                     Duration="0:0:0.52"/>
+                    <DoubleAnimation Storyboard.TargetName="FeatureCardsTranslate"
+                                     Storyboard.TargetProperty="Y"
+                                     From="20"
+                                     To="0"
+                                     BeginTime="0:0:0.16"
+                                     Duration="0:0:0.52"/>
+                    <DoubleAnimation Storyboard.TargetName="ModGuidePanel"
+                                     Storyboard.TargetProperty="Opacity"
+                                     From="0"
+                                     To="1"
+                                     BeginTime="0:0:0.22"
+                                     Duration="0:0:0.52"/>
+                    <DoubleAnimation Storyboard.TargetName="ModGuidePanelTranslate"
+                                     Storyboard.TargetProperty="Y"
+                                     From="18"
+                                     To="0"
+                                     BeginTime="0:0:0.22"
+                                     Duration="0:0:0.52"/>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </UserControl.Triggers>
 
-        <!-- ══ 左栏 ════════════════════════════════════════════════════════ -->
-        <Border Grid.Column="0" Background="{DynamicResource SecondaryRegionBrush}">
-            <Grid>
-                <!--
-                    DockPanel：
-                      Top    → 认证 + 头像 + 用户名
-                      Bottom → 启动按钮（最底）
-                      Bottom → 进度条 / 状态（按钮正上方，仅启动时显示）
-                      中间   → 自动空白留白
-                -->
-                <DockPanel Margin="24" LastChildFill="False">
+    <Grid ClipToBounds="True">
+        <!-- Fallback scene stays visible when the user has not supplied a custom background image. -->
+        <Grid.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#9CC7DE" Offset="0"/>
+                <GradientStop Color="#425F45" Offset="0.52"/>
+                <GradientStop Color="#0A120D" Offset="1"/>
+            </LinearGradientBrush>
+        </Grid.Background>
 
-                    <!-- ── 顶部：认证徽章 + 头像 + 用户名 ── -->
-                    <StackPanel DockPanel.Dock="Top">
+        <Canvas IsHitTestVisible="False">
+            <Ellipse Width="560"
+                     Height="560"
+                     Fill="#52FFE7A8"
+                     Canvas.Right="-130"
+                     Canvas.Top="-210"/>
+            <Path Data="M 0,500 L 160,284 L 315,460 L 480,230 L 700,520 Z"
+                  Fill="#68455F51"
+                  Stretch="Fill"
+                  Width="900"
+                  Height="520"
+                  Canvas.Left="-120"
+                  Canvas.Top="140"/>
+            <Path Data="M 0,500 L 180,310 L 330,440 L 520,250 L 760,510 Z"
+                  Fill="#65425A43"
+                  Stretch="Fill"
+                  Width="900"
+                  Height="520"
+                  Canvas.Right="-80"
+                  Canvas.Top="150"/>
+            <Path Data="M 0,430 L 160,365 L 330,430 L 520,332 L 720,445 L 910,350 L 1120,460 Z"
+                  Fill="#7A3B6B38"
+                  Stretch="Fill"
+                  Width="1280"
+                  Height="320"
+                  Canvas.Left="0"
+                  Canvas.Bottom="-35"/>
+        </Canvas>
 
-                        <!-- 认证类型 -->
-                        <StackPanel Orientation="Horizontal">
-                            <Border Background="{DynamicResource PrimaryBrush}"
-                                    CornerRadius="3" Padding="10,4" Margin="0,0,6,0">
-                                <TextBlock Text="离线" Foreground="White" FontSize="12"/>
-                            </Border>
-                            <Border Background="{DynamicResource BorderBrush}"
-                                    CornerRadius="3" Padding="10,4">
-                                <TextBlock Text="正版 (v0.3)"
-                                           Foreground="{DynamicResource ThirdlyTextBrush}"
-                                           FontSize="12"/>
-                            </Border>
-                        </StackPanel>
+        <Image x:Name="BackgroundImage"
+               Stretch="UniformToFill"
+               Opacity="0.94"
+               RenderOptions.BitmapScalingMode="HighQuality">
+            <Image.Effect>
+                <BlurEffect Radius="3.5"/>
+            </Image.Effect>
+        </Image>
 
-                        <!-- 头像 -->
-                        <Border Width="80" Height="80"
-                                Background="{DynamicResource PrimaryBrush}"
-                                CornerRadius="10"
-                                HorizontalAlignment="Center"
-                                Margin="0,24,0,0">
-                            <TextBlock Text="{Binding UsernameInitial}"
-                                       Foreground="White" FontSize="38" FontWeight="Bold"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"/>
-                        </Border>
+        <!-- Atmospheric overlays create vignette, depth, and the soft shader-like sunlight. -->
+        <Rectangle IsHitTestVisible="False">
+            <Rectangle.Fill>
+                <RadialGradientBrush RadiusX="0.72"
+                                     RadiusY="0.78"
+                                     Center="0.54,0.45"
+                                     GradientOrigin="0.72,0.16">
+                    <GradientStop Color="#00FFFFFF" Offset="0"/>
+                    <GradientStop Color="#22000000" Offset="0.58"/>
+                    <GradientStop Color="#82000000" Offset="1"/>
+                </RadialGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+        <Rectangle IsHitTestVisible="False">
+            <Rectangle.Fill>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#3A000000" Offset="0"/>
+                    <GradientStop Color="#05000000" Offset="0.42"/>
+                    <GradientStop Color="#68000000" Offset="1"/>
+                </LinearGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
 
-                        <!-- 用户名 -->
-                        <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
-                                 hc:InfoElement.Placeholder="输入游戏中显示的名称"
-                                 MaxLength="16"
-                                 TextAlignment="Center"
-                                 HorizontalAlignment="Stretch"
-                                 Margin="0,16,0,0"/>
+        <Grid Margin="94,96,94,36">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="156"/>
+            </Grid.RowDefinitions>
 
-                    </StackPanel>
+            <Border x:Name="LoginCard"
+                    Grid.Row="0"
+                    Width="540"
+                    Padding="34,30"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Opacity="0"
+                    Style="{StaticResource GlassPanelStyle}">
+                <Border.RenderTransform>
+                    <TranslateTransform x:Name="LoginCardTranslate"/>
+                </Border.RenderTransform>
 
-                    <!-- ── 底部：启动分割按钮 ── -->
-                    <Border x:Name="SplitBorder"
-                            DockPanel.Dock="Bottom"
-                            Background="{DynamicResource PrimaryBrush}"
-                            CornerRadius="6"
-                            Height="60"
-                            ClipToBounds="True">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="1"/>
-                                <ColumnDefinition Width="48"/>
-                            </Grid.ColumnDefinitions>
-
-                            <!-- 主区：点击=启动 -->
-                            <Button Grid.Column="0"
-                                    Command="{Binding LaunchCommand}"
-                                    Style="{StaticResource SplitPartStyle}"
-                                    Tag="6,0,0,6">
-                                <StackPanel>
-                                    <TextBlock Text="启动游戏"
-                                               Foreground="White"
-                                               FontSize="15" FontWeight="SemiBold"
-                                               HorizontalAlignment="Center"/>
-                                    <TextBlock Text="{Binding LaunchButtonSubtitle}"
-                                               Foreground="White" Opacity="0.75"
-                                               FontSize="11"
-                                               HorizontalAlignment="Center"
-                                               Margin="0,3,0,0"/>
-                                </StackPanel>
-                            </Button>
-
-                            <!-- 分隔线 -->
-                            <Rectangle Grid.Column="1" Fill="White" Opacity="0.25"/>
-
-                            <!-- 副区：点击=展开模式 Popup -->
-                            <Button x:Name="DropdownBtn"
-                                    Grid.Column="2"
-                                    Style="{StaticResource SplitPartStyle}"
-                                    Tag="0,6,6,0"
-                                    Click="DropdownBtn_Click">
-                                <TextBlock Text="▾" Foreground="White"
-                                           FontSize="15" VerticalAlignment="Center"/>
-                            </Button>
+                <StackPanel>
+                    <Border Width="58"
+                            Height="58"
+                            CornerRadius="18"
+                            HorizontalAlignment="Center"
+                            Background="#42FFFFFF"
+                            BorderBrush="{StaticResource GlassStroke}"
+                            BorderThickness="1"
+                            Effect="{StaticResource SoftShadow}">
+                        <Grid Margin="9">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="16"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Rectangle Fill="#7BDA5A" RadiusX="4" RadiusY="4"/>
+                            <Rectangle Grid.Row="1" Fill="#8B6137" RadiusX="4" RadiusY="4"/>
+                            <Rectangle Grid.Row="1" Width="13" HorizontalAlignment="Left" Fill="#A87743"/>
+                            <Rectangle Grid.Row="0" Width="14" HorizontalAlignment="Right" Fill="#B8F082"/>
                         </Grid>
                     </Border>
 
-                    <!-- ── 底部：进度条 + 状态（仅启动时显示） ── -->
-                    <StackPanel DockPanel.Dock="Bottom"
-                                Margin="0,0,0,14"
-                                Visibility="{Binding IsLaunching, Converter={StaticResource BoolToVis}}">
-                        <ProgressBar Value="{Binding Progress}" Maximum="100"
-                                     Height="4" Margin="0,0,0,6"/>
-                        <TextBlock Text="{Binding StatusText}"
-                                   FontSize="11" TextWrapping="Wrap"
-                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
-                    </StackPanel>
+                    <TextBlock Text="迷你世界"
+                               Margin="0,16,0,0"
+                               HorizontalAlignment="Center"
+                               FontSize="32"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimary}"/>
+                    <TextBlock Text="选择你的冒险"
+                               Margin="0,4,0,20"
+                               HorizontalAlignment="Center"
+                               FontSize="14"
+                               Foreground="{StaticResource TextSecondary}"/>
 
-                </DockPanel>
+                    <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+                             hc:InfoElement.Placeholder="账号 / 游戏昵称"
+                             MaxLength="16"
+                             Style="{StaticResource GlassFieldStyle}"/>
 
-                <!-- ── 模式选择 Popup（浮于左栏之上） ── -->
-                <Popup x:Name="ModePopup"
-                       PlacementTarget="{Binding ElementName=SplitBorder}"
-                       Placement="Top"
-                       VerticalOffset="-4"
-                       StaysOpen="False"
-                       AllowsTransparency="True">
-                    <Border Background="{DynamicResource RegionBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="6"
-                            Padding="4,6"
-                            MinWidth="{Binding ActualWidth, ElementName=SplitBorder}"
-                            Effect="{StaticResource EffectShadow2}">
-                        <StackPanel>
+                    <Grid Margin="0,11,0,0">
+                        <PasswordBox x:Name="PasswordHiddenBox"
+                                     hc:InfoElement.Placeholder="密码"
+                                     PasswordChanged="PasswordHiddenBox_PasswordChanged"
+                                     Style="{StaticResource GlassPasswordStyle}"/>
+                        <TextBox x:Name="PasswordVisibleBox"
+                                 Visibility="Collapsed"
+                                 hc:InfoElement.Placeholder="密码"
+                                 TextChanged="PasswordVisibleBox_TextChanged"
+                                 Style="{StaticResource GlassFieldStyle}"/>
+                        <ToggleButton x:Name="TogglePasswordButton"
+                                      Content="&#xE890;"
+                                      HorizontalAlignment="Right"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,7,0"
+                                      Style="{StaticResource IconToggleStyle}"
+                                      Click="TogglePasswordButton_Click"/>
+                    </Grid>
 
-                            <!-- 朝夕服 -->
-                            <Button Command="{Binding SelectOfficialServerCommand}"
-                                    Style="{StaticResource PopupItemStyle}"
-                                    Click="ModeItem_Click">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="●" Width="18" FontSize="9"
-                                               VerticalAlignment="Center"
-                                               Foreground="{DynamicResource PrimaryBrush}">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsOfficialServerMode}" Value="True">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBlock Width="18" Text=""
-                                               Visibility="{Binding IsOfficialServerMode,
-                                                   Converter={StaticResource BoolToVis}}">
-                                        <!-- 占位，使无选中时文字对齐 -->
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsOfficialServerMode}" Value="True">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBlock Text="进入朝夕服">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsOfficialServerMode}" Value="True">
-                                                        <Setter Property="FontWeight" Value="SemiBold"/>
-                                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </StackPanel>
-                            </Button>
+                    <Border Margin="0,11,0,0"
+                            Padding="12,9"
+                            CornerRadius="18"
+                            Background="#1FFFFFFF"
+                            BorderBrush="#3AFFFFFF"
+                            BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="6"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                            <!-- 单机 -->
-                            <Button Command="{Binding SelectSingleplayerCommand}"
-                                    Style="{StaticResource PopupItemStyle}"
-                                    Click="ModeItem_Click">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="●" Width="18" FontSize="9"
-                                               VerticalAlignment="Center"
-                                               Foreground="{DynamicResource PrimaryBrush}">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsSingleplayerMode}" Value="True">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBlock Width="18">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsSingleplayerMode}" Value="True">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBlock Text="单机游戏">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsSingleplayerMode}" Value="True">
-                                                        <Setter Property="FontWeight" Value="SemiBold"/>
-                                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </StackPanel>
-                            </Button>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{Binding AccountModeText}"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimary}"/>
+                                <TextBlock Text="{Binding AccountStatusText}"
+                                           Margin="0,3,0,0"
+                                           FontSize="11"
+                                           TextTrimming="CharacterEllipsis"
+                                           Foreground="{StaticResource TextMuted}"/>
+                            </StackPanel>
 
-                            <Separator Margin="4,4"/>
+                            <StackPanel Grid.Column="2"
+                                        Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                <Button Content="{Binding MicrosoftLoginButtonText}"
+                                        Command="{Binding LoginMicrosoftCommand}"
+                                        Style="{StaticResource SoftGlassButtonStyle}"/>
+                                <Button Content="设备码"
+                                        Margin="4,0,0,0"
+                                        Command="{Binding LoginMicrosoftDeviceCodeCommand}"
+                                        ToolTip="在浏览器中输入设备验证码登录（适用于 WebView2 不可用的情况）"
+                                        Style="{StaticResource SoftGlassButtonStyle}"/>
+                                <Button Content="离线模式"
+                                        Margin="4,0,0,0"
+                                        Command="{Binding UseOfflineAccountCommand}"
+                                        Style="{StaticResource SoftGlassButtonStyle}"/>
+                            </StackPanel>
 
-                            <!-- 其他服务器 -->
-                            <Button Command="{Binding SelectCustomServerCommand}"
-                                    Style="{StaticResource PopupItemStyle}"
-                                    Click="ModeItem_Click">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="●" Width="18" FontSize="9"
-                                               VerticalAlignment="Center"
-                                               Foreground="{DynamicResource PrimaryBrush}">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsCustomServerMode}" Value="True">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBlock Width="18">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsCustomServerMode}" Value="True">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBlock Text="连接其他服务器……">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsCustomServerMode}" Value="True">
-                                                        <Setter Property="FontWeight" Value="SemiBold"/>
-                                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </StackPanel>
-                            </Button>
-
-                        </StackPanel>
+                            <ComboBox Grid.Row="2"
+                                      Grid.ColumnSpan="3"
+                                      ItemsSource="{Binding AccountNames}"
+                                      SelectedIndex="{Binding SelectedAccountIndex}"
+                                      MaxDropDownHeight="180"
+                                      Style="{StaticResource GlassComboStyle}"
+                                      hc:InfoElement.Placeholder="选择已保存的账号"/>
+                        </Grid>
                     </Border>
-                </Popup>
 
-            </Grid>
-        </Border>
+                    <ComboBox x:Name="ServerCombo"
+                              Margin="0,11,0,0"
+                              SelectedIndex="0"
+                              MaxDropDownHeight="220"
+                              Style="{StaticResource GlassComboStyle}"
+                              SelectionChanged="ServerCombo_SelectionChanged">
+                        <ComboBoxItem Content="官方服务器（推荐）" Tag="{x:Static models:LaunchMode.OfficialServer}"/>
+                        <ComboBoxItem Content="单人游戏" Tag="{x:Static models:LaunchMode.Singleplayer}"/>
+                        <ComboBoxItem Content="自定义服务器" Tag="{x:Static models:LaunchMode.CustomServer}"/>
+                    </ComboBox>
 
-        <!-- ══ 右栏：服务器信息 + 公告 ═══════════════════════════════════ -->
-        <Grid Grid.Column="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
+                    <Grid Margin="0,15,0,20">
+                        <CheckBox Content="记住设备"
+                                  IsChecked="True"
+                                  Style="{StaticResource RememberCheckStyle}"/>
+                        <Button Content="忘记密码"
+                                HorizontalAlignment="Right"
+                                Style="{StaticResource TextLinkButtonStyle}"/>
+                    </Grid>
 
-            <!-- 服务器信息卡 -->
-            <Border Grid.Row="0"
-                    Margin="20,20,20,12"
-                    Background="{DynamicResource SecondaryRegionBrush}"
-                    CornerRadius="8" Padding="20,16">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0">
-                        <TextBlock Text="朝夕服" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-                        <TextBlock Text="{Binding ServerAddress}"
-                                   Foreground="{DynamicResource SecondaryTextBrush}"
-                                   FontSize="13"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" HorizontalAlignment="Right"
-                                VerticalAlignment="Center">
-                        <TextBlock Text="整合包版本" FontSize="11"
-                                   Foreground="{DynamicResource ThirdlyTextBrush}"
-                                   HorizontalAlignment="Right"/>
-                        <TextBlock Text="{Binding PackVersion}"
-                                   FontSize="16" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource PrimaryBrush}"
-                                   HorizontalAlignment="Right"/>
-                    </StackPanel>
-                </Grid>
+                    <!-- Critical binding: this still calls the original HomeViewModel.LaunchCommand. -->
+                    <Button Command="{Binding LaunchCommand}"
+                            Style="{StaticResource PrimaryActionButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="开始"/>
+                            <TextBlock Text="&#xE72A;"
+                                       Margin="12,1,0,0"
+                                       FontFamily="Segoe MDL2 Assets"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Expander Margin="0,18,0,0"
+                              Foreground="{StaticResource TextSecondary}"
+                              Background="Transparent"
+                              Header="更多选项">
+                        <Border Margin="0,12,0,0"
+                                Padding="14"
+                                CornerRadius="20"
+                                Background="#22FFFFFF"
+                                BorderBrush="#3EFFFFFF"
+                                BorderThickness="1">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="6"/>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="6"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox ItemsSource="{Binding MinecraftVersionOptions}"
+                                              SelectedItem="{Binding SelectedMinecraftVersion}"
+                                              DisplayMemberPath="DisplayName"
+                                              IsTextSearchEnabled="True"
+                                              MaxDropDownHeight="280"
+                                              Style="{StaticResource GlassComboStyle}"/>
+                                    <ComboBox Grid.Column="2"
+                                              ItemsSource="{Binding PlayerLoaderTypeOptions}"
+                                              SelectedItem="{Binding SelectedPlayerLoaderType}"
+                                              MaxDropDownHeight="240"
+                                              Style="{StaticResource GlassComboStyle}"/>
+                                    <ComboBox Grid.Column="4"
+                                              ItemsSource="{Binding FabricLoaderVersionOptions}"
+                                              SelectedItem="{Binding SelectedFabricLoaderVersion}"
+                                              MaxDropDownHeight="240"
+                                              Style="{StaticResource GlassComboStyle}"/>
+                                </Grid>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                    <Button Content="刷新"
+                                            Command="{Binding RefreshGameVersionsCommand}"
+                                            Style="{StaticResource SoftGlassButtonStyle}"/>
+                                    <Button Content="单人"
+                                            Margin="8,0,0,0"
+                                            Command="{Binding SelectSingleplayerCommand}"
+                                            Style="{StaticResource SoftGlassButtonStyle}"/>
+                                    <Button Content="自定义服务器"
+                                            Margin="8,0,0,0"
+                                            Command="{Binding SelectCustomServerCommand}"
+                                            Style="{StaticResource SoftGlassButtonStyle}"/>
+                                    <CheckBox Content="快照"
+                                              IsChecked="{Binding IncludeSnapshots}"
+                                              Margin="12,0,0,0"
+                                              VerticalAlignment="Center"
+                                              Style="{StaticResource RememberCheckStyle}"/>
+                                </StackPanel>
+
+                                <Button Margin="0,12,0,0"
+                                        Command="{Binding LaunchSelectedVersionCommand}"
+                                        Style="{StaticResource SoftGlassButtonStyle}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="启动自选版本"/>
+                                        <TextBlock Text="&#xE72A;"
+                                                   Margin="10,1,0,0"
+                                                   FontFamily="Segoe MDL2 Assets"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <TextBlock Text="{Binding VersionPickerStatus}"
+                                           Margin="0,10,0,0"
+                                           FontSize="12"
+                                           TextTrimming="CharacterEllipsis"
+                                           Foreground="{StaticResource TextMuted}"/>
+
+                                <Border Margin="0,12,0,0"
+                                        Padding="14"
+                                        CornerRadius="18"
+                                        Background="#1EFFFFFF"
+                                        BorderBrush="#38FFFFFF"
+                                        BorderThickness="1">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="12"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel>
+                                            <TextBlock Text="服务器 Mod 使用说明"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextPrimary}"/>
+                                            <TextBlock Margin="0,6,0,0"
+                                                       FontSize="11"
+                                                       TextWrapping="Wrap"
+                                                       Foreground="{StaticResource TextSecondary}"
+                                                       Text="官方服务器会自动同步必需 Mod；玩家可以额外添加 Fabric 客户端 Mod，例如小地图、HUD、截图、画质优化类。不要添加需要服务器安装的内容类 Mod，若启动崩溃请删除新加的 jar。"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="2"
+                                                    VerticalAlignment="Center">
+                                            <Button Content="打开 mods 文件夹"
+                                                    Command="{Binding OpenModsFolderCommand}"
+                                                    Style="{StaticResource SoftGlassButtonStyle}"/>
+                                            <Button Content="崩溃报告"
+                                                    Margin="0,6,0,0"
+                                                    Command="{Binding OpenCrashReportsCommand}"
+                                                    Style="{StaticResource SoftGlassButtonStyle}"/>
+                                            <Button Content="游戏日志"
+                                                    Margin="0,6,0,0"
+                                                    Command="{Binding OpenGameLogsCommand}"
+                                                    Style="{StaticResource SoftGlassButtonStyle}"/>
+                                            <Button Content="查看完整说明"
+                                                    Margin="0,6,0,0"
+                                                    Click="ModGuideButton_Click"
+                                                    Style="{StaticResource SoftGlassButtonStyle}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </Expander>
+
+                    <UniformGrid Columns="3" Margin="0,20,0,0">
+                        <Border Margin="0,0,7,0" Style="{StaticResource StatusPillStyle}">
+                            <StackPanel>
+                                <TextBlock Text="服务器" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                <TextBlock Text="{Binding ServerStatusText}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Margin="7,0" Style="{StaticResource StatusPillStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Java" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                <TextBlock Text="{Binding JavaStatusText}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Margin="7,0,0,0" Style="{StaticResource StatusPillStyle}">
+                            <StackPanel>
+                                <TextBlock Text="版本" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                <TextBlock Text="{Binding VersionStatusText}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <Border Margin="0,18,0,6"
+                            Padding="14,12"
+                            CornerRadius="18"
+                            Background="#1EFFFFFF"
+                            BorderBrush="#36FFFFFF"
+                            BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="10"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Width="26"
+                                        Height="26"
+                                        CornerRadius="13"
+                                        Background="#24FFFFFF"
+                                        BorderBrush="#3EFFFFFF"
+                                        BorderThickness="1">
+                                    <TextBlock Text="&#xE895;"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               FontSize="12"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="2"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="启动进度"
+                                               FontSize="11"
+                                               Foreground="{StaticResource TextMuted}"/>
+                                    <TextBlock Text="{Binding StatusText}"
+                                               Margin="0,2,0,0"
+                                               FontSize="12"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+
+                                <Border Grid.Column="3"
+                                        MinWidth="44"
+                                        Height="28"
+                                        Padding="10,0"
+                                        CornerRadius="14"
+                                        Background="#22FFFFFF"
+                                        BorderBrush="#3EFFFFFF"
+                                        BorderThickness="1">
+                                    <TextBlock Text="{Binding Progress, StringFormat={}{0:0}%}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextPrimary}"/>
+                                </Border>
+                            </Grid>
+
+                            <Grid Grid.Row="2"
+                                  Height="7"
+                                  ClipToBounds="True">
+                                <Border Background="#20FFFFFF"
+                                        CornerRadius="4"/>
+                                <ProgressBar Value="{Binding Progress}"
+                                             Maximum="100"
+                                             Height="7"
+                                             Background="Transparent"
+                                             Foreground="{StaticResource AccentTeal}">
+                                    <ProgressBar.Resources>
+                                        <Style TargetType="ProgressBar">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ProgressBar">
+                                                        <Grid x:Name="TemplateRoot">
+                                                            <Border Background="{TemplateBinding Background}"
+                                                                    CornerRadius="4"/>
+                                                            <Border x:Name="PART_Track"
+                                                                    Background="Transparent"
+                                                                    CornerRadius="4"/>
+                                                            <Decorator x:Name="PART_Indicator"
+                                                                       HorizontalAlignment="Left">
+                                                                <Border CornerRadius="4">
+                                                                    <Border.Background>
+                                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                                            <GradientStop Color="#7DDB65" Offset="0"/>
+                                                                            <GradientStop Color="#28C7A6" Offset="1"/>
+                                                                        </LinearGradientBrush>
+                                                                    </Border.Background>
+                                                                </Border>
+                                                            </Decorator>
+                                                        </Grid>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ProgressBar.Resources>
+                                </ProgressBar>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </StackPanel>
             </Border>
 
-            <!-- 公告 -->
-            <ScrollViewer Grid.Row="1" Margin="20,0,20,20"
-                          VerticalScrollBarVisibility="Auto">
-                <StackPanel>
-                    <TextBlock Text="公告"
-                               FontSize="14" FontWeight="SemiBold"
-                               Margin="0,0,0,8"
-                               Visibility="{Binding Announcement,
-                                   Converter={StaticResource String2VisibilityConverter}}"/>
-                    <TextBlock Text="{Binding Announcement}"
-                               TextWrapping="Wrap" FontSize="13" LineHeight="22"
-                               Foreground="{DynamicResource SecondaryTextBrush}"/>
-                    <TextBlock Text="暂无公告" FontSize="13"
-                               Foreground="{DynamicResource ThirdlyTextBrush}">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Announcement}" Value="">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                </StackPanel>
-            </ScrollViewer>
-        </Grid>
+            <Border x:Name="ModGuidePanel"
+                    Grid.Row="0"
+                    Width="320"
+                    Padding="20"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Opacity="0"
+                    Style="{StaticResource GlassPanelStyle}">
+                <Border.RenderTransform>
+                    <TranslateTransform x:Name="ModGuidePanelTranslate"/>
+                </Border.RenderTransform>
 
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="36"
+                                    Height="36"
+                                    CornerRadius="11"
+                                    Background="#32FFFFFF"
+                                    BorderBrush="#52FFFFFF"
+                                    BorderThickness="1">
+                                <TextBlock Text="&#xE8F1;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="16"
+                                           Foreground="{StaticResource TextPrimary}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel Margin="10,0,0,0">
+                                <TextBlock Text="Mod 使用说明"
+                                           FontSize="17"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimary}"/>
+                                <TextBlock Text="官方同步 + 玩家自定义"
+                                           Margin="0,2,0,0"
+                                           FontSize="11"
+                                           Foreground="{StaticResource TextMuted}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="官方服务器会自动同步必需 Mod。玩家可以把 Fabric 客户端 Mod 放进 mods 文件夹，例如小地图、HUD、截图、光影和画质优化。"
+                               FontSize="12"
+                               LineHeight="19"
+                               TextWrapping="Wrap"
+                               Foreground="{StaticResource TextSecondary}"/>
+
+                    <Border Margin="0,14,0,0"
+                            Padding="12"
+                            CornerRadius="16"
+                            Background="#1FFFFFFF"
+                            BorderBrush="#3AFFFFFF"
+                            BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="可以添加"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimary}"/>
+                            <TextBlock Text="小地图 / HUD / 截图 / 缩放 / 光影 / 性能优化 / 皮肤显示"
+                                       Margin="0,5,0,0"
+                                       FontSize="11"
+                                       LineHeight="18"
+                                       TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextSecondary}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Margin="0,10,0,0"
+                            Padding="12"
+                            CornerRadius="16"
+                            Background="#1FFFFFFF"
+                            BorderBrush="#3AFFFFFF"
+                            BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="不要添加"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimary}"/>
+                            <TextBlock Text="新方块 / 新物品 / 新生物 / 新维度 / 地形生成 / 需要服务器安装的 Mod"
+                                       Margin="0,5,0,0"
+                                       FontSize="11"
+                                       LineHeight="18"
+                                       TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextSecondary}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="崩溃处理：删除最近添加的 jar，再重启游戏。按键入口可在游戏内 控制 -> 按键绑定 搜索 Mod 名称。"
+                               Margin="0,13,0,0"
+                               FontSize="11"
+                               LineHeight="18"
+                               TextWrapping="Wrap"
+                               Foreground="{StaticResource TextMuted}"/>
+
+                    <Grid Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Content="打开 mods"
+                                Command="{Binding OpenModsFolderCommand}"
+                                Style="{StaticResource SoftGlassButtonStyle}"/>
+                        <Button Grid.Column="2"
+                                Content="完整说明"
+                                Click="ModGuideButton_Click"
+                                Style="{StaticResource SoftGlassButtonStyle}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Grid x:Name="FeatureCards"
+                  Grid.Row="1"
+                  Opacity="0"
+                  VerticalAlignment="Bottom">
+                <Grid.RenderTransform>
+                    <TranslateTransform x:Name="FeatureCardsTranslate"/>
+                </Grid.RenderTransform>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="0.9*"/>
+                    <ColumnDefinition Width="8.2*"/>
+                    <ColumnDefinition Width="0.9*"/>
+                </Grid.ColumnDefinitions>
+
+                <UniformGrid Grid.Column="1"
+                             Columns="4">
+                    <Border Style="{StaticResource FeatureCardStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid>
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Width="34" Height="34" CornerRadius="10" Background="#32FFFFFF" BorderBrush="#52FFFFFF" BorderThickness="1">
+                                        <TextBlock Text="&#xE7F7;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{StaticResource TextPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Text="服务器公告" Margin="10,5,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}"/>
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Grid.Row="1"
+                                       Text="{Binding Announcement, TargetNullValue='欢迎来到烨夜服！请选择游戏模式后点击开始。'}"
+                                       Margin="0,12,0,10"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextSecondary}"/>
+                            <TextBlock Grid.Row="2"
+                                       Text="{Binding PackVersion, StringFormat='整合包版本：{0}'}"
+                                       FontSize="12"
+                                       Foreground="{StaticResource TextMuted}"/>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource FeatureCardStyle}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="34" Height="34" CornerRadius="10" Background="#32FFFFFF" BorderBrush="#52FFFFFF" BorderThickness="1">
+                                    <TextBlock Text="&#xE8F1;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{StaticResource TextPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="{Binding VersionStatusText, StringFormat='版本 {0}'}" Margin="10,5,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}"/>
+                                <Border Margin="8,6,0,0" Padding="8,2" CornerRadius="9" Background="#38A6FFD0">
+                                    <TextBlock Text="当前" FontSize="11" Foreground="{StaticResource TextPrimary}"/>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="{Binding ServerAddress, StringFormat='服务器地址：{0}'}"
+                                       Margin="0,13,0,14"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextSecondary}"/>
+                            <TextBlock Text="{Binding ServerPlayersText}"
+                                       FontSize="12"
+                                       Foreground="#E2FFF4"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource FeatureCardStyle}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="34" Height="34" CornerRadius="10" Background="#32FFFFFF" BorderBrush="#52FFFFFF" BorderThickness="1">
+                                    <TextBlock Text="&#xE902;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{StaticResource TextPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="服务器状态" Margin="10,5,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding ServerStatusText, StringFormat='服务器：{0}'}"
+                                       Margin="0,13,0,14"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextSecondary}"/>
+                            <TextBlock Text="{Binding ServerPlayersText}"
+                                       FontSize="12"
+                                       Foreground="#E2FFF4"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource FeatureCardStyle}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="34" Height="34" CornerRadius="10" Background="#32FFFFFF" BorderBrush="#52FFFFFF" BorderThickness="1">
+                                    <TextBlock Text="&#xE77B;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{StaticResource TextPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="启动环境" Margin="10,5,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding JavaStatusText, StringFormat='Java：{0}'}"
+                                       Margin="0,13,0,4"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextSecondary}"/>
+                            <TextBlock Text="{Binding AccountModeText, StringFormat='账号：{0}'}"
+                                       Margin="0,0,0,14"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextSecondary}"/>
+                            <TextBlock Text="{Binding ModeText, StringFormat='模式：{0}'}"
+                                       FontSize="12"
+                                       Foreground="#E2FFF4"/>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+            </Grid>
+        </Grid>
     </Grid>
 </UserControl>

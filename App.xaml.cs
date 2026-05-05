@@ -40,15 +40,38 @@ public partial class App : Application
                 retainedFileCountLimit: 7)
             .CreateLogger();
 
-        Log.Information("ArclightLauncher v0.3 启动");
+        var version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.3.5";
+        Log.Information("ArclightLauncher v{Version} 启动", version);
+
 
         // ── 2. 构建通用主机（DI 容器）────────────────────────────────
         _host = Host.CreateDefaultBuilder()
             .UseSerilog()
             .ConfigureAppConfiguration(cfg =>
             {
+                var builtInConfig = new Dictionary<string, string?>
+                {
+                    ["Launcher:ManifestUrl"] =
+                        "https://raw.githubusercontent.com/Ez4lifeEik/arclight-modpack/main/manifest.json",
+                    ["Launcher:ManifestMirrorUrls:0"] =
+                        "https://cdn.jsdelivr.net/gh/Ez4lifeEik/arclight-modpack@main/manifest.json",
+                    ["Launcher:ManifestMirrorUrls:1"] =
+                        "https://ghproxy.net/https://raw.githubusercontent.com/Ez4lifeEik/arclight-modpack/main/manifest.json",
+                    ["Launcher:AnnouncementUrl"] = "",
+                    ["Launcher:GitHubRepo"] = "Ez4lifeEik/ArclightLauncher",
+                    ["Launcher:MicrosoftClientId"] = "",
+                    ["Launcher:MicrosoftTenantId"] = "consumers",
+                    ["Launcher:MicrosoftRedirectUri"] = "http://localhost",
+                    ["Launcher:MicrosoftScopes:0"] = "XboxLive.signin",
+                    ["Launcher:MicrosoftScopes:1"] = "offline_access",
+                    ["Launcher:MicrosoftScopes:2"] = "openid",
+                    ["Launcher:MicrosoftScopes:3"] = "email",
+                    ["Launcher:MicrosoftScopes:4"] = "profile"
+                };
+
                 cfg.SetBasePath(AppContext.BaseDirectory)
-                   .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false);
+                   .AddInMemoryCollection(builtInConfig)
+                   .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false);
             })
             .ConfigureServices((_, services) =>
             {
@@ -60,10 +83,12 @@ public partial class App : Application
                 services.AddSingleton<GameDirectoryService>();
                 services.AddSingleton<ManifestService>();
                 services.AddSingleton<AccountService>();
+                services.AddSingleton<MicrosoftAuthService>();
                 services.AddSingleton<JavaService>();
                 services.AddSingleton<DownloadService>();
                 services.AddSingleton<SyncService>();
                 services.AddSingleton<LaunchService>();
+                services.AddSingleton<UpdateService>();
 
                 // ViewModels（Singleton：整个生命周期只有一个实例）
                 services.AddSingleton<HomeViewModel>();
@@ -77,6 +102,9 @@ public partial class App : Application
             .Build();
 
         await _host.StartAsync();
+
+        // ── 2.5. 清理上次更新残留文件 ──────────────────────────────────
+        UpdateService.CleanOldFiles();
 
         // ── 3. 加载设置，应用初始主题 ─────────────────────────────────
         var settingsService  = _host.Services.GetRequiredService<SettingsService>();
@@ -99,9 +127,34 @@ public partial class App : Application
 
         // ── 5. 显示主窗口 ──────────────────────────────────────────────
         var mainWindow = _host.Services.GetRequiredService<MainWindow>();
-        // 主窗口关闭时才真正退出程序
-        mainWindow.Closed += (_, _) => Shutdown();
+        // 托盘图标接管退出逻辑（ShutdownMode.OnExplicitShutdown）
         mainWindow.Show();
+
+        // 后台静默检查更新，不阻塞主窗口
+        _ = CheckForUpdateInBackgroundAsync(mainWindow);
+    }
+
+    private async Task CheckForUpdateInBackgroundAsync(System.Windows.Window owner)
+    {
+        // 等待主窗口完成渲染后再发起网络请求
+        await Task.Delay(TimeSpan.FromSeconds(2));
+        try
+        {
+            var updateService = _host!.Services.GetRequiredService<UpdateService>();
+            var info = await updateService.CheckForUpdateAsync();
+            if (info is null) return;
+
+            await Dispatcher.InvokeAsync(() =>
+            {
+                var vm     = new UpdateViewModel(info, updateService);
+                var dialog = new UpdateDialog(vm) { Owner = owner };
+                dialog.ShowDialog();
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "后台更新检查出现未处理异常");
+        }
     }
 
     protected override async void OnExit(ExitEventArgs e)

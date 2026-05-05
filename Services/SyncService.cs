@@ -22,6 +22,11 @@ public class SyncService
     private readonly DownloadService _downloader;
     private readonly ILogger<SyncService> _logger;
 
+    private static readonly HashSet<string> BlockedExtraMods = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "controlify-3.0.0-beta.3+1.21.11-fabric.jar"
+    };
+
     public event EventHandler<double>? ProgressChanged;
     public event EventHandler<string>? StatusChanged;
 
@@ -85,7 +90,12 @@ public class SyncService
             Directory.CreateDirectory(targetDir);
 
             // 先处理多余文件（目标目录中不在 manifest 的文件）
-            await DisableExtraFilesAsync(targetDir, files, disabledDir, ct);
+            await DisableExtraFilesAsync(
+                targetDir,
+                files,
+                disabledDir,
+                preserveUnknownExtras: subDir == "mods",
+                ct);
 
             foreach (var file in files)
             {
@@ -141,7 +151,15 @@ public class SyncService
                     }
                 }
 
-                // ── 4. 下载 ───────────────────────────────────────────────
+                // ── 4. 启动器内置包有缓存，直接复制 ───────────────────────
+                if (await TryRestoreFromBundledPackAsync(file, subDir, destPath, label, ct))
+                {
+                    doneFiles++;
+                    ReportProgress(CalcProgress(progressStart, progressEnd, doneFiles, totalFiles));
+                    continue;
+                }
+
+                // ── 5. 下载 ───────────────────────────────────────────────
                 ReportStatus($"正在下载{label}：{file.Filename}");
                 await _downloader.DownloadFileAsync(file.Url, destPath, file.Sha1, null, ct);
 
@@ -155,6 +173,51 @@ public class SyncService
         _logger.LogInformation("SyncService 完成，共处理 {Count} 个文件", doneFiles);
     }
 
+    private async Task<bool> TryRestoreFromBundledPackAsync(
+        PackFile file,
+        string subDir,
+        string destPath,
+        string label,
+        CancellationToken ct)
+    {
+        foreach (var candidate in GetBundledPackFileCandidates(subDir, file.Filename))
+        {
+            if (!File.Exists(candidate))
+                continue;
+
+            if (!string.IsNullOrWhiteSpace(file.Sha1))
+            {
+                var actual = await HashHelper.ComputeSha1Async(candidate, ct);
+                if (!actual.Equals(file.Sha1, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning(
+                        "启动器内置{Label} SHA1 不匹配，跳过：{File}",
+                        label,
+                        file.Filename);
+                    continue;
+                }
+            }
+
+            ReportStatus($"正在从启动器内置包复制{label}：{file.Filename}");
+            Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
+            await Task.Run(() => File.Copy(candidate, destPath, overwrite: true), ct);
+            _logger.LogInformation("已从启动器内置包恢复{Label}：{File}", label, file.Filename);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static IEnumerable<string> GetBundledPackFileCandidates(string subDir, string filename)
+    {
+        var baseDir = AppContext.BaseDirectory;
+        return new[]
+        {
+            Path.Combine(baseDir, "Assets", "PackCache", subDir, filename),
+            Path.Combine(baseDir, "..", "..", "..", "Assets", "PackCache", subDir, filename)
+        }.Select(Path.GetFullPath);
+    }
+
     // ─────────────────────────────────────────────────────────────────────
     // 多余文件处理
     // ─────────────────────────────────────────────────────────────────────
@@ -163,6 +226,7 @@ public class SyncService
         string targetDir,
         IReadOnlyCollection<PackFile> expectedFiles,
         string disabledDir,
+        bool preserveUnknownExtras,
         CancellationToken ct)
     {
         if (!Directory.Exists(targetDir)) return;
@@ -183,6 +247,15 @@ public class SyncService
         {
             ct.ThrowIfCancellationRequested();
             var fileName = Path.GetFileName(extra);
+
+            // Players may add their own client-only Fabric mods. Keep unknown extra
+            // mods in place, while still quarantining known crashing files.
+            if (preserveUnknownExtras && !BlockedExtraMods.Contains(fileName))
+            {
+                _logger.LogInformation("保留玩家自定义 Mod：{File}", fileName);
+                continue;
+            }
+
             var dest     = Path.Combine(disabledDir, fileName);
             if (File.Exists(dest))
                 dest = BuildTimestampedPath(disabledDir, fileName);

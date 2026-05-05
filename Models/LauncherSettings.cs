@@ -18,6 +18,9 @@ public class LauncherSettings
     /// <summary>Java 可执行文件路径；空字符串表示自动检测</summary>
     public string JavaExe { get; set; } = string.Empty;
 
+    /// <summary>未找到合适 Java 时自动下载启动器托管的 Eclipse Temurin JRE。</summary>
+    public bool AutoDownloadJava { get; set; } = true;
+
     // ── 性能 ──────────────────────────────────────────────────────────────
     /// <summary>最大 JVM 堆内存（MB）</summary>
     public int MaxMemory { get; set; } = ComputeDefaultMemoryMb();
@@ -28,6 +31,9 @@ public class LauncherSettings
     // ── 外观 ──────────────────────────────────────────────────────────────
     /// <summary>主题：Light / Dark / System</summary>
     public string Theme { get; set; } = "System";
+
+    /// <summary>自定义背景图路径；空字符串表示使用内置随机背景</summary>
+    public string BackgroundImagePath { get; set; } = string.Empty;
 
     // ── 启动行为 ──────────────────────────────────────────────────────────
     /// <summary>启动后行为：Keep / Minimize / Close</summary>
@@ -49,6 +55,15 @@ public class LauncherSettings
 
     /// <summary>自定义服务器端口</summary>
     public int CustomServerPort { get; set; } = 25565;
+
+    /// <summary>玩家自选启动的 Minecraft 版本</summary>
+    public string PlayerMinecraftVersion { get; set; } = "1.21.10";
+
+    /// <summary>玩家自选启动的 Fabric Loader 版本，latest 表示自动选择最新版</summary>
+    public string PlayerFabricLoaderVersion { get; set; } = "latest";
+
+    /// <summary>版本选择器是否显示快照版</summary>
+    public bool IncludeSnapshotsInVersionList { get; set; } = true;
 
     // ── 首次运行 ──────────────────────────────────────────────────────────
     /// <summary>用户已通过首次运行引导确认了游戏目录</summary>
