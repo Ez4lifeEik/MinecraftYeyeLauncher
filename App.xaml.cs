@@ -58,7 +58,7 @@ public partial class App : Application
                     ["Launcher:ManifestMirrorUrls:1"] =
                         "https://ghproxy.net/https://raw.githubusercontent.com/Ez4lifeEik/arclight-modpack/main/manifest.json",
                     ["Launcher:AnnouncementUrl"] = "",
-                    ["Launcher:GitHubRepo"] = "Ez4lifeEik/ArclightLauncher",
+                    ["Launcher:GitHubRepo"] = "Ez4lifeEik/MinecraftYeyeLauncher",
                     ["Launcher:MicrosoftClientId"] = "",
                     ["Launcher:MicrosoftTenantId"] = "consumers",
                     ["Launcher:MicrosoftRedirectUri"] = "http://localhost",
