@@ -3,6 +3,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace ArclightLauncher.Services;
@@ -14,6 +16,8 @@ public class ManifestService
     private readonly string[] _manifestUrls;
     private readonly string? _announcementUrl;
     private readonly string _manifestCachePath;
+    // 配置后启用 manifest 签名校验：远端清单必须带有效 .sig 才被接受（fail-closed）。空 = 不校验（向后兼容）。
+    private readonly string _manifestPublicKey;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -31,6 +35,7 @@ public class ManifestService
         _logger = logger;
         _manifestUrls = ReadManifestUrls(configuration);
         _announcementUrl = configuration["Launcher:AnnouncementUrl"];
+        _manifestPublicKey = configuration["Launcher:ManifestPublicKey"]?.Trim() ?? string.Empty;
         _manifestCachePath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "ArclightLauncher",
@@ -49,7 +54,13 @@ public class ManifestService
             try
             {
                 _logger.LogInformation("Fetching manifest: {Url}", manifestUrl);
-                var json = (await GetStringWithTimeoutAsync(manifestUrl, ct)).TrimStart('\uFEFF');
+                var rawBytes = await GetBytesWithTimeoutAsync(manifestUrl, ct);
+
+                // \u542F\u7528\u7B7E\u540D\u6821\u9A8C\u65F6\uFF0C\u8FDC\u7AEF\u6E05\u5355\u5FC5\u987B\u5E26\u6709\u6548\u7B7E\u540D\u624D\u88AB\u63A5\u53D7\uFF1B\u5426\u5219\u8DF3\u8FC7\u8BE5\u6765\u6E90
+                if (_manifestPublicKey.Length > 0)
+                    await VerifyManifestSignatureAsync(rawBytes, configuredUrl, ct);
+
+                var json = Encoding.UTF8.GetString(rawBytes).TrimStart('\uFEFF');
                 var manifest = ParseManifest(json, configuredUrl);
                 await SaveCacheAsync(json, ct);
 
@@ -99,6 +110,65 @@ public class ManifestService
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(20));
         return await _httpFactory.CreateClient().GetStringAsync(url, timeoutCts.Token);
+    }
+
+    private async Task<byte[]> GetBytesWithTimeoutAsync(string url, CancellationToken ct)
+    {
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(TimeSpan.FromSeconds(20));
+        return await _httpFactory.CreateClient().GetByteArrayAsync(url, timeoutCts.Token);
+    }
+
+    /// <summary>
+    /// 校验远端清单的分离签名（&lt;manifestUrl&gt;.sig，内容为 base64 的 RSA-SHA256 签名）。
+    /// 签名缺失或不匹配时抛 InvalidOperationException（fail-closed），由调用方跳过该来源。
+    /// </summary>
+    private async Task VerifyManifestSignatureAsync(byte[] manifestBytes, string configuredUrl, CancellationToken ct)
+    {
+        var sigUrl = BuildNoCacheUrl(configuredUrl + ".sig");
+
+        string sigText;
+        try
+        {
+            sigText = await GetStringWithTimeoutAsync(sigUrl, ct);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"未能获取 manifest 签名文件：{configuredUrl}.sig", ex);
+        }
+
+        byte[] signature;
+        try
+        {
+            signature = Convert.FromBase64String(sigText.Trim());
+        }
+        catch (FormatException ex)
+        {
+            throw new InvalidOperationException("manifest 签名文件格式无效（应为 base64）", ex);
+        }
+
+        if (!VerifyRsaSignature(manifestBytes, signature, _manifestPublicKey))
+            throw new InvalidOperationException($"manifest 签名校验未通过，已拒绝来源：{configuredUrl}");
+
+        _logger.LogInformation("manifest 签名校验通过：{Source}", configuredUrl);
+    }
+
+    private static bool VerifyRsaSignature(byte[] data, byte[] signature, string publicKey)
+    {
+        try
+        {
+            using var rsa = RSA.Create();
+            if (publicKey.Contains("BEGIN", StringComparison.Ordinal))
+                rsa.ImportFromPem(publicKey);
+            else
+                rsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(publicKey), out _);
+
+            return rsa.VerifyData(data, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 
     private ServerManifest ParseManifest(string json, string source)

@@ -53,8 +53,13 @@ if ($SkipInstaller) {
         if ($LASTEXITCODE -ne 0) { throw "Inno Setup compile failed" }
         $installer = Get-ChildItem $PublishDir -Filter "*Setup*.exe" | Select-Object -First 1
         if ($installer) {
+            # 生成 SHA256 校验文件，随安装包一起上传到 GitHub Release（启动器自更新强制校验）
+            $hash = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLower()
+            $shaPath = "$($installer.FullName).sha256"
+            Set-Content -Path $shaPath -Value "$hash  $($installer.Name)" -Encoding ascii
             Write-Host ""
             Write-Host "  Installer: $($installer.FullName)" -ForegroundColor Green
+            Write-Host "  SHA256:    $shaPath" -ForegroundColor Green
         }
     }
 }

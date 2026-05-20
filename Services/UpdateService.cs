@@ -18,6 +18,7 @@ public class UpdateService
     private readonly DownloadService    _downloadService;
     private readonly ILogger<UpdateService> _logger;
     private readonly string _githubRepo;
+    private readonly string _updatePublisherName;
 
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
 
@@ -31,6 +32,8 @@ public class UpdateService
         _downloadService = downloadService;
         _logger          = logger;
         _githubRepo      = configuration["Launcher:GitHubRepo"] ?? string.Empty;
+        // 可选：配置后将额外校验更新包 Authenticode 签名者主题（需对发布包做代码签名）
+        _updatePublisherName = configuration["Launcher:UpdatePublisherName"]?.Trim() ?? string.Empty;
     }
 
     /// <summary>
@@ -89,9 +92,14 @@ public class UpdateService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "获取 SHA256 校验文件失败，跳过校验");
+                    _logger.LogWarning(ex, "获取 SHA256 校验文件失败");
                 }
             }
+
+            if (string.IsNullOrWhiteSpace(sha256))
+                _logger.LogWarning(
+                    "Release {Tag} 缺少有效的 .sha256 校验文件，自动更新将被拒绝（请随包发布校验文件）",
+                    release.TagName);
 
             _logger.LogInformation("发现新版本 {New}（{Size:N0} 字节），安装包：{Url}",
                 remote.ToString(3), asset.Size, asset.BrowserDownloadUrl);
@@ -121,6 +129,12 @@ public class UpdateService
         Action<long, long>? onProgress,
         CancellationToken  ct)
     {
+        // 安全：拒绝无校验文件的更新（fail-closed）。发布时务必随包附带 <安装包名>.sha256。
+        if (string.IsNullOrWhiteSpace(info.Sha256))
+            throw new InvalidOperationException(
+                "该版本未提供 SHA256 校验文件，出于安全考虑已拒绝自动更新。\n" +
+                "请在 GitHub Release 中附带 “<安装包名>.exe.sha256” 后重试，或前往项目页面手动下载。");
+
         var appDir = AppContext.BaseDirectory;
         var currentExe = Environment.ProcessPath ?? Path.Combine(appDir, "ArclightLauncher.exe");
         var newExe = Path.Combine(appDir, $"ArclightLauncher_v{info.NewVersion.ToString(3)}.exe");
@@ -129,8 +143,15 @@ public class UpdateService
         await _downloadService.DownloadFileAsync(
             info.DownloadUrl, newExe, null, onProgress, ct);
 
-        if (!string.IsNullOrWhiteSpace(info.Sha256))
-            await VerifySha256Async(newExe, info.Sha256, ct);
+        // 1) 强制校验 SHA256（与下载内容比对，防止传输损坏 / 镜像篡改）
+        await VerifySha256Async(newExe, info.Sha256, ct);
+
+        // 2) 可选：校验 Authenticode 签名 + 发布者（防止仓库/Release 被投毒；需已配置发布者名）
+        if (!string.IsNullOrWhiteSpace(_updatePublisherName))
+        {
+            AuthenticodeVerifier.Verify(newExe, _updatePublisherName);
+            _logger.LogInformation("更新包 Authenticode 签名校验通过（发布者含：{Publisher}）", _updatePublisherName);
+        }
 
         // 创建交换脚本：等待旧进程退出 → 替换 exe → 启动新版
         var batchPath = Path.Combine(appDir, "_update.bat");

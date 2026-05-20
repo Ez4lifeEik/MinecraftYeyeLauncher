@@ -22,6 +22,51 @@ public class DownloadService
     }
 
     /// <summary>
+    /// 依次尝试多个镜像下载同一个文件，任一成功即返回。
+    /// 每个候选 URL 内部仍按 <see cref="DownloadFileAsync"/> 的规则重试并校验 SHA1。
+    /// 只有全部候选都失败才抛异常，异常携带最后一次错误。
+    /// </summary>
+    /// <param name="urls">按优先级排列的候选下载地址（如 [镜像, 源站]）</param>
+    public async Task DownloadFileWithFallbackAsync(
+        IReadOnlyList<string> urls,
+        string destPath,
+        string? expectedSha1 = null,
+        Action<long, long>? onProgress = null,
+        CancellationToken ct = default)
+    {
+        var candidates = urls
+            .Where(u => !string.IsNullOrWhiteSpace(u))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (candidates.Count == 0)
+            throw new ArgumentException("未提供任何下载地址", nameof(urls));
+
+        Exception? lastError = null;
+        for (var i = 0; i < candidates.Count; i++)
+        {
+            var url = candidates[i];
+            try
+            {
+                await DownloadFileAsync(url, destPath, expectedSha1, onProgress, ct);
+                return;
+            }
+            // 用户主动取消时立即停止；其余失败则尝试下一个镜像
+            catch (Exception ex) when (!ct.IsCancellationRequested)
+            {
+                lastError = ex;
+                _logger.LogWarning(
+                    "镜像下载失败（{Index}/{Total}），尝试下一个源：{Url}",
+                    i + 1, candidates.Count, url);
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"文件 {Path.GetFileName(destPath)} 下载失败（已尝试 {candidates.Count} 个下载源）",
+            lastError);
+    }
+
+    /// <summary>
     /// 下载单个文件并校验 SHA1。
     /// </summary>
     /// <param name="url">下载地址</param>

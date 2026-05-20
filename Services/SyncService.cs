@@ -1,6 +1,7 @@
 using System.IO;
 using ArclightLauncher.Helpers;
 using ArclightLauncher.Models;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace ArclightLauncher.Services;
@@ -22,6 +23,20 @@ public class SyncService
     private readonly DownloadService _downloader;
     private readonly ILogger<SyncService> _logger;
 
+    /// <summary>
+    /// GitHub raw 下载镜像前缀（按优先级排列），用法为 前缀 + 完整 raw URL。
+    /// 默认 ghproxy.net（实测可发 jar；jsdelivr 对本仓库 jar 返回 403，故不使用）。
+    /// 可在 appsettings.json 的 Launcher:ModDownloadMirrors 覆盖。
+    /// </summary>
+    private static readonly string[] DefaultModMirrorPrefixes =
+    {
+        "https://ghproxy.net/"
+    };
+
+    private const string GitHubRawPrefix = "https://raw.githubusercontent.com/";
+
+    private readonly string[] _modMirrorPrefixes;
+
     private static readonly HashSet<string> BlockedExtraMods = new(StringComparer.OrdinalIgnoreCase)
     {
         "controlify-3.0.0-beta.3+1.21.11-fabric.jar"
@@ -30,10 +45,52 @@ public class SyncService
     public event EventHandler<double>? ProgressChanged;
     public event EventHandler<string>? StatusChanged;
 
-    public SyncService(DownloadService downloader, ILogger<SyncService> logger)
+    public SyncService(
+        DownloadService downloader,
+        ILogger<SyncService> logger,
+        IConfiguration configuration)
     {
         _downloader = downloader;
         _logger = logger;
+        _modMirrorPrefixes = ReadMirrorPrefixes(configuration);
+    }
+
+    private static string[] ReadMirrorPrefixes(IConfiguration configuration)
+    {
+        var configured = configuration
+            .GetSection("Launcher:ModDownloadMirrors")
+            .GetChildren()
+            .Select(item => item.Value)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim())
+            .ToArray();
+
+        return configured.Length > 0 ? configured : DefaultModMirrorPrefixes;
+    }
+
+    /// <summary>
+    /// 为单个下载地址生成候选列表：镜像优先（国内对 raw.githubusercontent 限速），源站兜底。
+    /// 仅对 raw.githubusercontent.com 应用镜像前缀，其它地址原样返回。
+    /// </summary>
+    private IReadOnlyList<string> BuildDownloadCandidates(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url) ||
+            !url.StartsWith(GitHubRawPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return new[] { url };
+        }
+
+        var candidates = new List<string>();
+        foreach (var prefix in _modMirrorPrefixes)
+        {
+            if (!string.IsNullOrWhiteSpace(prefix))
+                candidates.Add(prefix.Trim() + url);
+        }
+        candidates.Add(url); // 源站兜底
+
+        return candidates
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     /// <summary>
@@ -80,6 +137,9 @@ public class SyncService
 
         int totalFiles = groups.Sum(g => g.Files.Count);
         int doneFiles  = 0;
+
+        // 收集失败文件：单个文件失败不再中断整包同步，最后统一汇总报错
+        var failures = new List<(string Label, string File, Exception Error)>();
 
         foreach (var (files, subDir, label) in groups)
         {
@@ -159,13 +219,33 @@ public class SyncService
                     continue;
                 }
 
-                // ── 5. 下载 ───────────────────────────────────────────────
+                // ── 5. 下载（镜像优先，单个失败不中断整体同步）─────────────
                 ReportStatus($"正在下载{label}：{file.Filename}");
-                await _downloader.DownloadFileAsync(file.Url, destPath, file.Sha1, null, ct);
+                try
+                {
+                    await _downloader.DownloadFileWithFallbackAsync(
+                        BuildDownloadCandidates(file.Url), destPath, file.Sha1, null, ct);
+                }
+                catch (Exception ex) when (!ct.IsCancellationRequested)
+                {
+                    _logger.LogError(ex, "{Label} 下载失败（已尝试全部镜像）：{File}", label, file.Filename);
+                    failures.Add((label, file.Filename, ex));
+                }
 
                 doneFiles++;
                 ReportProgress(CalcProgress(progressStart, progressEnd, doneFiles, totalFiles));
             }
+        }
+
+        if (failures.Count > 0)
+        {
+            var detail = string.Join("\n  • ", failures.Select(f => $"{f.Label}：{f.File}"));
+            throw new InvalidOperationException(
+                $"以下 {failures.Count} 个文件下载失败，整合包不完整，无法正常进入服务器：\n  • {detail}\n\n" +
+                "可能原因：网络不稳定，或所有下载源都被拦截/限速。\n" +
+                "请检查网络后重新点击启动；若反复失败，可在 appsettings.json 的 " +
+                "Launcher:ModDownloadMirrors 中添加可用的 GitHub 加速镜像前缀。",
+                failures[0].Error);
         }
 
         ReportStatus("文件同步完成");
@@ -211,11 +291,24 @@ public class SyncService
     private static IEnumerable<string> GetBundledPackFileCandidates(string subDir, string filename)
     {
         var baseDir = AppContext.BaseDirectory;
-        return new[]
-        {
-            Path.Combine(baseDir, "Assets", "PackCache", subDir, filename),
-            Path.Combine(baseDir, "..", "..", "..", "Assets", "PackCache", subDir, filename)
-        }.Select(Path.GetFullPath);
+
+        // 单文件发布（PublishSingleFile + IncludeAllContentForSelfExtract）时，
+        // 内容会被解压到临时目录，AppContext.BaseDirectory 与 exe 实际所在目录可能不同，
+        // 因此把进程可执行文件所在目录也作为候选，确保能命中内置整合包。
+        var exeDir = Path.GetDirectoryName(Environment.ProcessPath ?? string.Empty);
+
+        var roots = new List<string> { baseDir };
+        if (!string.IsNullOrWhiteSpace(exeDir))
+            roots.Add(exeDir);
+
+        return roots
+            .SelectMany(root => new[]
+            {
+                Path.Combine(root, "Assets", "PackCache", subDir, filename),
+                Path.Combine(root, "..", "..", "..", "Assets", "PackCache", subDir, filename)
+            })
+            .Select(Path.GetFullPath)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
     }
 
     // ─────────────────────────────────────────────────────────────────────

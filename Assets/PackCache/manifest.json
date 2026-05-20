@@ -1,5 +1,5 @@
 {
-    "pack_version":  "2026.05.02.2",
+    "pack_version":  "2026.05.20.1",
     "minecraft_version":  "1.21.11",
     "loader":  {
                    "type":  "fabric",
@@ -769,6 +769,28 @@
                      "user_removable":  false,
                      "display_name":  "zoomify-2.15.2+1.21.11",
                      "category":  "mods"
+                 },
+                 {
+                     "filename":  "Gamma-Utils-2.5.10+mc1.21.11.jar",
+                     "url":  "https://raw.githubusercontent.com/Ez4lifeEik/arclight-modpack/main/mods/Gamma-Utils-2.5.10%2Bmc1.21.11.jar",
+                     "sha1":  "3f06271ea2c87634c23a37c97608b38fb78e015d",
+                     "size":  102032,
+                     "side":  "client",
+                     "required":  true,
+                     "user_removable":  false,
+                     "display_name":  "Gamma Utils（无限夜视/全亮）",
+                     "category":  "client-enhancement"
+                 },
+                 {
+                     "filename":  "freecam-fabric-1.3.6+mc1.21.11.jar",
+                     "url":  "https://raw.githubusercontent.com/Ez4lifeEik/arclight-modpack/main/mods/freecam-fabric-1.3.6%2Bmc1.21.11.jar",
+                     "sha1":  "fa808166a5a266048a29cb235dd78fc24342e631",
+                     "size":  1146167,
+                     "side":  "client",
+                     "required":  true,
+                     "user_removable":  false,
+                     "display_name":  "Freecam（灵魂出窍/自由视角）",
+                     "category":  "client-enhancement"
                  }
              ],
     "resourcepacks":  [
